@@ -22,6 +22,10 @@ class CompanyListingsViewModel @Inject constructor(
 
     var state by mutableStateOf(CompanyListingsState())
 
+    init{
+        getCompanyListings()
+    }
+
     private var searchJob: Job?=null
      fun onEvent(event: CompanyListingsEvent){
          when(event){

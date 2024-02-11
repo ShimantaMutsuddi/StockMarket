@@ -37,9 +37,9 @@ import javax.inject.Singleton
 
 @Singleton
 class StockRepositoryImpl @Inject constructor(
-    val stockApi: StockApi,
-    val stockDatabase: StockDatabase,
-    val companyListingParser: CsvParsar<CompanyListing>
+    private val stockApi: StockApi,
+    private val stockDatabase: StockDatabase,
+    private val companyListingParser: CsvParsar<CompanyListing>
 ) : StockRepository {
 
     private val stockDao = stockDatabase.dao
