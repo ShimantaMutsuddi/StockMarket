@@ -111,4 +111,9 @@ dependencies {
     implementation("com.opencsv:opencsv:5.9")
 
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+
+    implementation("io.github.raamcosta.compose-destinations:core:1.9.63")
+    ksp ("io.github.raamcosta.compose-destinations:ksp:1.9.63")
+
+    implementation("com.google.accompanist:accompanist-swiperefresh:0.35.0-alpha")
 }
