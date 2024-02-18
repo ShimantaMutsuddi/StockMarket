@@ -4,10 +4,13 @@ package com.mutsuddi_s.stockmarket.data.repository
 import com.mutsuddi_s.stockmarket.data.csv.CompanyListingParser
 import com.mutsuddi_s.stockmarket.data.csv.CsvParsar
 import com.mutsuddi_s.stockmarket.data.local.StockDatabase
+import com.mutsuddi_s.stockmarket.data.mapper.toCompanyInfo
 import com.mutsuddi_s.stockmarket.data.mapper.toCompanyListing
 import com.mutsuddi_s.stockmarket.data.mapper.toCompanyListingEntity
 import com.mutsuddi_s.stockmarket.data.remote.StockApi
+import com.mutsuddi_s.stockmarket.domain.model.CompanyInfo
 import com.mutsuddi_s.stockmarket.domain.model.CompanyListing
+import com.mutsuddi_s.stockmarket.domain.model.IntraDayInfo
 import com.mutsuddi_s.stockmarket.domain.repository.StockRepository
 import com.mutsuddi_s.stockmarket.util.Resource
 import kotlinx.coroutines.flow.Flow
@@ -39,7 +42,8 @@ import javax.inject.Singleton
 class StockRepositoryImpl @Inject constructor(
     private val stockApi: StockApi,
     private val stockDatabase: StockDatabase,
-    private val companyListingParser: CsvParsar<CompanyListing>
+    private val companyListingParser: CsvParsar<CompanyListing>,
+    private val intraDayInfoParser: CsvParsar<IntraDayInfo>
 ) : StockRepository {
 
     private val stockDao = stockDatabase.dao
@@ -65,28 +69,28 @@ class StockRepositoryImpl @Inject constructor(
             val isDbEmpty = localListings.isEmpty() && query.isBlank()
             val shouldJustLoadFromCache = !isDbEmpty && !fetchFromRemote
 
-            if(shouldJustLoadFromCache){
+            if (shouldJustLoadFromCache) {
                 emit(Resource.Loading(false))
                 return@flow
             }
 
-            val remoteListings= try {
-                val response =  stockApi.getListings()
+            val remoteListings = try {
+                val response = stockApi.getListings()
                 companyListingParser.parse(response.byteStream())
 
-            }catch (e: IOException){ // pArsing goes wrong
+            } catch (e: IOException) { // pArsing goes wrong
                 e.printStackTrace()
                 emit(Resource.Error("Couldn't load data"))
                 null
 
-            } catch (e: HttpException){ // when ivalid response
+            } catch (e: HttpException) { // when ivalid response
 
                 e.printStackTrace()
                 emit(Resource.Error("Couldn't load data"))
                 null
             }
 
-            remoteListings?.let { listings->
+            remoteListings?.let { listings ->
                 stockDao.clearCompanyListings()
                 stockDao.insertCompanyListings(
                     listings.map { it.toCompanyListingEntity() }
@@ -94,7 +98,7 @@ class StockRepositoryImpl @Inject constructor(
                 emit(Resource.Success(
                     data = stockDao
                         .searchCompanyListing("")
-                        .map{ it.toCompanyListing()}
+                        .map { it.toCompanyListing() }
                 ))
                 emit(Resource.Loading(false))
 
@@ -103,4 +107,39 @@ class StockRepositoryImpl @Inject constructor(
 
         }
     }
+
+    override suspend fun getIntraDayInfo(symbol: String): Resource<List<IntraDayInfo>> {
+        return try {
+            val response = stockApi.getIntraDayInfo(symbol = symbol)
+            val results = intraDayInfoParser.parse(response.byteStream())
+            Resource.Success(results)
+
+
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Resource.Error("Couldn't load intraday info")
+        } catch (e: HttpException) {
+            e.printStackTrace()
+            Resource.Error("Couldn't load intraday info")
+        }
+    }
+
+    override suspend fun getCompanyInfo(symbol: String): Resource<CompanyInfo> {
+
+        return try {
+            val result = stockApi.getCompanyInfo(symbol = symbol)
+            Resource.Success(result.toCompanyInfo())
+
+
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Resource.Error("Couldn't load intraday info")
+        } catch (e: HttpException) {
+            e.printStackTrace()
+            Resource.Error("Couldn't load intraday info")
+        }
+
+    }
 }
+
+
